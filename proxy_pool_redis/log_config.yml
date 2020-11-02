@@ -9,22 +9,6 @@ handlers:
         level: DEBUG
         formatter: simple
         stream: ext://sys.stdout
-    info_file_handler:
-        class: logging.handlers.RotatingFileHandler
-        level: INFO
-        formatter: simple
-        filename: proxy_pool_info.log
-        maxBytes: 10485760
-        backupCount: 20
-        encoding: utf8
-    error_file_handler:
-        class: logging.handlers.RotatingFileHandler
-        level: ERROR
-        formatter: simple
-        filename: proxy_pool_errors.log
-        maxBytes: 10485760
-        backupCount: 20
-        encoding: utf8
 loggers:
     pool:
         level: DEBUG

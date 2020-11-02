@@ -46,11 +46,12 @@ class XunProxyPool(IpPool):
         self.get_ip_threading_running = True
 
     def _load_ip(self):
-        logger.info("load ip overload from xunproxy url is %s", self.api_url)
+        logger.info("load ip overload from xunproxy")
         flag = None
         res = None
 
         while flag != REQUEST_SUCCESS:
+            logger.info("starting to requests ip = %s",self.api_url)
             res = requests.get(self.api_url).content.decode()  # 请求ip
             res = json.loads(res)  # 解析成字典
             if res['ERRORCODE'] == '0':
@@ -60,7 +61,7 @@ class XunProxyPool(IpPool):
                 logger.info("提取频率过高，sleep 10s")
                 flag = REQUEST_TOO_QUICK
                 sleep(10)
-            elif res["ERRORCODE"] is "10032":
+            elif res["ERRORCODE"] == "10032":
                 logger.info("已达上限!!")
                 raise ReachMaxException()
 
