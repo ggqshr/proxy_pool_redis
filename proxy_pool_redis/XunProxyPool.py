@@ -18,7 +18,7 @@ logger = logging.getLogger("pool.xunpool")
 
 class XunProxyPool(IpPool):
     def __init__(self, api_url=None, name=None, pool_size=None,
-                 reporta_number=None, redis_host=None, redis_port=None, redis_password=None, log_level=logging.DEBUG) -> None:
+                 reporta_num=None, redis_host=None, redis_port=None, redis_password=None, log_level=logging.DEBUG) -> None:
         """
         针对讯代理的代理池，需要传入请求ip的url，以及需要使用该代理池的应用程序名字（爬虫名字，比如爬虫爬取网站的缩写等）
         如果不传入name，则默认为uuid的前八个字符
@@ -39,7 +39,7 @@ class XunProxyPool(IpPool):
 
         super().__init__(log_level=log_level)
 
-        self.register_index(name, pool_size, reporta_number)
+        self.register_index(name, pool_size, reporta_num)
 
         self.request_queue = Queue()
         self.ip_queue = Queue()
