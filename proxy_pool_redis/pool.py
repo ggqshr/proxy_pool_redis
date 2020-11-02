@@ -4,6 +4,7 @@ from .config import config_obj
 import logging
 from random import choices, random
 from redis.lock import Lock
+import re
 
 logger = logging.getLogger("pool.pool")
 
@@ -20,6 +21,8 @@ fake_ip = [
     "36.66.108.75:4444",
 ]
 
+ip_reg = re.compile(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}$")
+
 
 class IpPool:
 
@@ -29,7 +32,7 @@ class IpPool:
     DEFAULT_POOLSIZE = 3
     request_ip_span_time = 10
 
-    def __init__(self) -> None:
+    def __init__(self, log_level=logging.DEBUG) -> None:
         logger.debug(
             f"init pool with host={config_obj.redis_host},port={config_obj.redis_port}")
         self.__redis_pool = redis.ConnectionPool(
@@ -38,8 +41,9 @@ class IpPool:
             connection_pool=self.__redis_pool)
         self.request_ip_lock: Lock = self.client.lock(
             "request_ip_time_span", timeout=self.request_ip_span_time)
+        logger.setLevel(log_level)
 
-    def __load_ip(self):
+    def _load_ip(self):
         logger.debug("loading ip from source...")
         return choices(fake_ip, k=3)
 
@@ -66,7 +70,7 @@ class IpPool:
 
     def load_proxy_from_source(self):
         if self.request_ip_lock.acquire(blocking=False):
-            ips = self.__load_ip()
+            ips = self._load_ip()
             logger.debug("loading ips: %s save to %s" %
                          (ips, self.IP_POOP_KEY_NAME))
             self.client.sadd(self.IP_POOP_KEY_NAME, *ips)
@@ -82,7 +86,8 @@ class IpPool:
         format_index = self.get_index_pool_name(index)
         logger.debug("index after format is %s" % format_index)
         if not self.client.scard(format_index):
-            logger.debug("index %s not exists,exec supplement program", format_index)
+            logger.debug(
+                "index %s not exists,exec supplement program", format_index)
             self.__init_index_pool(index)
         return self.client.srandmember(format_index)
 
@@ -91,6 +96,8 @@ class IpPool:
         这里ip指的是ip的字符串，形如ip:port
         """
         logger.debug("report %s %s should be ban", index, ip)
+        assert ip is not None and re.match(
+            ip_reg, ip) is not None, "ip is None or ip format error ip=%s" % ip
         index_pool_name = self.get_index_pool_name(index)
         index_ban_name = self.get_index_ban_pool_name(index)
         index_order_name = self.get_index_orderset_name(index)
@@ -113,6 +120,8 @@ class IpPool:
         如果ip被报告的次数过多，则会将ip直接删除，达到需要删除的次数和index对应的report_num相关，默认为10
         """
         logger.debug("report %s %s is bad", index, ip)
+        assert ip is not None and re.match(
+            ip_reg, ip) is not None, "ip is None or ip format error ip=%s" % ip
         index_order_name = self.get_index_orderset_name(index)
 
         this_report_num = self.client.zincrby(index_order_name, -1, ip)
@@ -219,3 +228,9 @@ class IpPool:
     def close(self):
         logger.info("shutdown pool...")
         self.__redis_pool.disconnect()
+
+    def start(self):
+        """
+        代理池的初始化逻辑，这里没有默认实现，后续继承的子类可以自己实现对应的逻辑
+        """
+        pass
