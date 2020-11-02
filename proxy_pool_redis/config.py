@@ -1,8 +1,12 @@
 from dataclasses import dataclass, field
 import logging.config
 import yaml
+from pathlib import Path
 
-with open("log_config.yml", "r") as f:
+this_path = Path(__file__)
+log_path = this_path.parent.joinpath("log_config.yml")
+
+with open(log_path, "r") as f:
     log_config = yaml.load(f, Loader=yaml.FullLoader)
 logging.config.dictConfig(log_config)
 

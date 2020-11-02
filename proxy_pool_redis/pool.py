@@ -1,6 +1,6 @@
 from logging import Logger
 import redis
-from config import config_obj
+from .config import config_obj
 import logging
 from random import choices, random
 from redis.lock import Lock
@@ -76,13 +76,13 @@ class IpPool:
         if not self.client.scard(self.IP_POOP_KEY_NAME):  # 如果主代理池不存在或者为空，则加载代理ip资源
             self.load_proxy_from_source()
 
-        self.__supplement_proxy_from_main_pool(index, init=True)
+        self.__supplement_proxy_from_main_pool(index)
 
     def get_ip(self, index):
         format_index = self.get_index_pool_name(index)
         logger.debug("index after format is %s" % format_index)
-        if not self.client.exists(format_index):
-            logger.debug("index %s not exists,exec init program", format_index)
+        if not self.client.scard(format_index):
+            logger.debug("index %s not exists,exec supplement program", format_index)
             self.__init_index_pool(index)
         return self.client.srandmember(format_index)
 
@@ -134,15 +134,13 @@ class IpPool:
             self.load_proxy_from_source()
 
         # 从main pool 中加载ip到指定index的池中，更新相应的集合等
-        self.__supplement_proxy_from_main_pool(index, init=False)
+        self.__supplement_proxy_from_main_pool(index)
 
-    def __supplement_proxy_from_main_pool(self, index, init=True):
+    def __supplement_proxy_from_main_pool(self, index):
         """
         执行从main pool 加载ip到对应的index的池中的操作，包含以下的操作
         1.首先获取一些对应的属性，对应index的pool_size和report_num
-        2.假设main_pool中必有对应的ip，然后根据传入的参数，是否是init
-            2.1 如果是init，直接从main_pool中拿去对应index pool_size个ip
-            2.2 如果不是init，则需要先取main_pool不在对应index ban_pool中的ip，然后在随机取pool_size
+        2.假设main_pool中必有对应的ip，先取main_pool不在对应index ban_pool中的ip，然后在随机取pool_size
         3.将拿到的Ip放入到对应index的pool中，并加入到对应index的orderset中，更新index的orderset过期时间
         """
         index_pool_name = self.get_index_pool_name(index)
@@ -164,18 +162,20 @@ class IpPool:
 
         random_ips: list[str] = None
 
-        logger.debug("supplement proxy ip for %s init=%s", index, init)
-        if init:
-            random_ips = self.client.srandmember(
-                self.IP_POOP_KEY_NAME, index_pool_size)  # 获取pool_size个ip
-        else:
-            this_ips_list = list(self.client.sdiff(
-                self.IP_POOP_KEY_NAME, index_ban_pool_name))
-            random_ips = choices(this_ips_list, k=min(
-                int(index_pool_size), len(this_ips_list)))
+        logger.debug("supplement proxy ip for %s ", index)
+
+        this_ips_list = list(self.client.sdiff(
+            self.IP_POOP_KEY_NAME, index_ban_pool_name))
+        random_ips = choices(this_ips_list, k=min(
+            int(index_pool_size), len(this_ips_list)))
 
         logger.debug("get %s random ip from pool %s",
-                     index_pool_size, random_ips)
+                     len(random_ips), random_ips)
+
+        if len(random_ips) == 0:
+            logger.info("There are no qualified resources in main pool!")
+            self.load_proxy_from_source()
+            return
 
         self.client.sadd(index_pool_name, *random_ips)  # 将ip放到index对应的set中
 
