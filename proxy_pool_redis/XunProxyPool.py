@@ -46,10 +46,9 @@ class XunProxyPool(IpPool):
         self.get_ip_threading_running = True
 
     def _load_ip(self):
-        logger.info("load ip overload from xunproxy")
-        res = requests.get(self.api_url).content.decode()  # 请求ip
-        res = json.loads(res)  # 解析成字典
+        logger.info("load ip overload from xunproxy url is %s", self.api_url)
         flag = None
+        res = None
 
         while flag != REQUEST_SUCCESS:
             res = requests.get(self.api_url).content.decode()  # 请求ip

@@ -7,7 +7,8 @@ pool: IpPool = None
 
 def setup_module():
     global pool
-    pool = XunProxyPool(api_url="111", name="lp")
+    pool = XunProxyPool(
+        api_url="http://api.xdaili.cn/xdaili-api/greatRecharge/getGreatIp?spiderId=2eeedc14918546f087abcddafd5ee37d&orderno=YZ20196121637TQppQw&returnType=2&count=3", name="lp")
     pool.start()
 
 

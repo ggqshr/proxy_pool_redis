@@ -29,7 +29,4 @@ loggers:
     pool:
         level: DEBUG
         handlers: [console]
-        propagate: yes
-root:
-    level: INFO
-    handlers: [info_file_handler, error_file_handler]
+        propagate: no

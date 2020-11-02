@@ -13,7 +13,7 @@ else:
 
 setuptools.setup(
     name="proxy_pool_redis",
-    version="0.0.2",
+    version="0.0.3",
     author="ggq",
     author_email="942490944@qq.com",
     description="爬虫代理IP池",
@@ -21,6 +21,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/ggqshr/proxy_pool_redis",
     packages=setuptools.find_packages(),
+    package_data={'': ['*.yml']},
     install_requires=install_requires,
     classifiers=[
         "Programming Language :: Python :: 3",
