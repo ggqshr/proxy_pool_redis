@@ -1,10 +1,13 @@
-from logging import Logger
+from threading import Thread
 import redis
+import requests
 from .config import config_obj
 import logging
 from random import choices, random
 from redis.lock import Lock
 import re
+from concurrent.futures import ThreadPoolExecutor
+from time import sleep
 
 logger = logging.getLogger("pool.pool")
 
@@ -24,6 +27,17 @@ fake_ip = [
 ip_reg = re.compile(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}$")
 
 
+def verify_ip(ip):
+    try:
+        proxy_info = "http://%s" % ip
+        requests.get("http://www.baidu.com",
+                     timeout=10,
+                     proxies={'http': proxy_info, "https": proxy_info})
+        return ip, False
+    except:
+        return ip, True
+
+
 class IpPool:
 
     IP_POOP_KEY_NAME = "IP_POOL:POOL"
@@ -31,6 +45,7 @@ class IpPool:
     DEFAULT_REPORT_NUM = 10
     DEFAULT_POOLSIZE = 3
     request_ip_span_time = 10
+    scan_time_span = 60 * 5  # 从主池中去掉过期ip的扫描时间间隔
 
     def __init__(self, log_level=logging.DEBUG) -> None:
         logger.debug(
@@ -41,6 +56,9 @@ class IpPool:
             connection_pool=self.__redis_pool)
         self.request_ip_lock: Lock = self.client.lock(
             "request_ip_time_span", timeout=self.request_ip_span_time)
+        self.clear_timeout_proxy_lock: Lock = self.client.lock(
+            "clear_timeout_proxy_lock", timeout=self.scan_time_span-2
+        )
         logger.setLevel(log_level)
 
     def _load_ip(self):
@@ -217,6 +235,27 @@ class IpPool:
 
     def get_index_orderset_name(self, index):
         return "%s:%s:report_pool" % (self.IP_INDEX_PREFIX, index)
+
+    def __clear_timeout_proxy(self):
+        logger.info(
+            "starting clear timeout proxy thread, scan time span is %ss", self.scan_time_span)
+        while True:
+            if self.clear_timeout_proxy_lock.acquire(blocking=False):
+                logger.info("scan timeout ip to delete....")
+                thread_pool = ThreadPoolExecutor(30)
+                all_pool_ip = self.client.smembers(self.IP_POOP_KEY_NAME)
+                verify_res = thread_pool.map(verify_ip, all_pool_ip)
+                to_be_deleted_ips = [item[0]
+                                     for item in filter(lambda x:x[1], verify_res)]
+                if len(to_be_deleted_ips) != 0:
+                    self.client.srem(self.IP_POOP_KEY_NAME, *to_be_deleted_ips)
+                logger.info("scan and delete done,delete %s ips",
+                            len(to_be_deleted_ips))
+            sleep(self.scan_time_span)
+
+    def _scan_unavailable_ip_to_delete(self):
+        scan_thread = Thread(target=self.__clear_timeout_proxy, daemon=True)
+        scan_thread.start()
 
     def __set_expire_date(self, name, time=86400):
         """

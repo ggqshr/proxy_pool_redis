@@ -17,13 +17,15 @@ logger = logging.getLogger("pool.xunpool")
 
 
 class XunProxyPool(IpPool):
-    def __init__(self, api_url=None, name=None, pool_size=None,
+    def __init__(self, api_url=None, name=None, scan_timeout_ip=False, scan_time_span=300, pool_size=None,
                  reporta_num=None, redis_host=None, redis_port=None, redis_password=None, log_level=logging.DEBUG) -> None:
         """
         针对讯代理的代理池，需要传入请求ip的url，以及需要使用该代理池的应用程序名字（爬虫名字，比如爬虫爬取网站的缩写等）
         如果不传入name，则默认为uuid的前八个字符
         api_url: 请求可以获得ip资源的url
         name：使用该代理池的应用名字，可以用爬取目标网站的缩写等，如果不传入，则默认为uuid的前8位，每次都不一样
+        scan_timeout_ip：是否扫描不可用的ip，并将其删除
+        scan_time_span：扫描的时间间隔，默认为5分钟
         """
         config_obj.redis_host = redis_host if redis_host is not None else config_obj.redis_host
         config_obj.redis_port = redis_port if redis_port is not None else config_obj.redis_port
@@ -44,6 +46,10 @@ class XunProxyPool(IpPool):
         self.request_queue = Queue()
         self.ip_queue = Queue()
         self.get_ip_threading_running = True
+
+        if scan_timeout_ip:
+            self.scan_time_span = scan_time_span
+            super()._scan_unavailable_ip_to_delete()
 
     def _load_ip(self):
         logger.info("load ip overload from xunproxy")
