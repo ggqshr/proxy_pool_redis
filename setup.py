@@ -13,7 +13,7 @@ else:
 
 setuptools.setup(
     name="proxy_pool_redis",
-    version="0.0.5",
+    version="0.0.6",
     author="ggq",
     author_email="942490944@qq.com",
     description="爬虫代理IP池",

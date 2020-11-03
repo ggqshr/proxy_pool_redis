@@ -51,7 +51,7 @@ class XunProxyPool(IpPool):
         res = None
 
         while flag != REQUEST_SUCCESS:
-            logger.info("starting to requests ip = %s",self.api_url)
+            logger.info("starting to requests ip = %s", self.api_url)
             res = requests.get(self.api_url).content.decode()  # 请求ip
             res = json.loads(res)  # 解析成字典
             if res['ERRORCODE'] == '0':
@@ -82,10 +82,10 @@ class XunProxyPool(IpPool):
             self.ip_queue.put(this_ip)
 
     def report_bad_ip(self, ip):
-        super().report_bad_ip(self.name, ip)
+        super()._report_bad_ip(self.name, ip)
 
     def report_ban_ip(self, ip):
-        super().report_ban_ip(self.name, ip)
+        super()._report_ban_ip(self.name, ip)
 
     def start(self):
         logger.info("starting xunproxy pool")

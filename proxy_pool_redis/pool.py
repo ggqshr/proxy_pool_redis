@@ -91,7 +91,7 @@ class IpPool:
             self.__init_index_pool(index)
         return self.client.srandmember(format_index)
 
-    def report_ban_ip(self, index, ip):
+    def _report_ban_ip(self, index, ip):
         """
         这里ip指的是ip的字符串，形如ip:port
         """
@@ -114,7 +114,7 @@ class IpPool:
         if not self.client.scard(index_pool_name):  # 如果删除之后对应index的pool为空，则进行补充
             self.__supplement_index(index)
 
-    def report_bad_ip(self, index, ip):
+    def _report_bad_ip(self, index, ip):
         """
         报告质量有问题的ip，有可能是偶然的原因造成的连接失败，
         如果ip被报告的次数过多，则会将ip直接删除，达到需要删除的次数和index对应的report_num相关，默认为10
@@ -127,7 +127,7 @@ class IpPool:
         this_report_num = self.client.zincrby(index_order_name, -1, ip)
         logger.debug("%s %s current count is %s", index, ip, this_report_num)
         if this_report_num <= 0:
-            self.report_ban_ip(index, ip)
+            self._report_ban_ip(index, ip)
 
     def __supplement_index(self, index):
         """
