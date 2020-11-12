@@ -85,6 +85,8 @@ class XunProxyPool(IpPool):
         while self.get_ip_threading_running:
             self.request_queue.get()
             this_ip = super().get_ip(self.name)
+            while this_ip is None:
+                this_ip = super().get_ip(self.name)
             self.ip_queue.put(this_ip)
 
     def report_bad_ip(self, ip):
