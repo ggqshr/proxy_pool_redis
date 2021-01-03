@@ -124,6 +124,7 @@ class IpPool:
         logger.debug("for %s move %s from %s to %s", index,
                      ip, index_pool_name, index_ban_name)
         self.client.smove(index_pool_name, index_ban_name, ip)
+        self.__set_expire_date(index_ban_name,28800) # 默认过期时间是8个小时
 
         # 将用于记录report的集合删除对应的记录
         logger.debug("for %s remove item from %s", index, index_order_name)
