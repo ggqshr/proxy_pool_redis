@@ -72,8 +72,7 @@ class KuaiProxyPool(IpPool):
                 raise ReachMaxException()
 
         ip_port_list = res['data']['proxy_list']
-        ip_pool = ["942490944:xmjjqa2w@%s" % proxy for proxy in ip_port_list]
-        return ip_pool
+        return ip_port_list
 
     def get_ip(self):
         self.request_queue.put_nowait("fetch proxy ip")
