@@ -11,9 +11,11 @@ if os.path.exists("requirements.txt"):
 else:
     install_requires = []
 
+print(install_requires)
+
 setuptools.setup(
     name="proxy_pool_redis",
-    version="0.0.9",
+    version="0.0.12",
     author="ggq",
     author_email="942490944@qq.com",
     description="爬虫代理IP池",
