@@ -60,15 +60,17 @@ class KuaiProxyPool(IpPool):
         while flag != REQUEST_SUCCESS:
             logger.info("starting to requests ip = %s", self.api_url)
             res = requests.get(self.api_url).json()  # 请求ip
-            if res['code'] == 0:
+            this_code = str(res['code'])
+            if this_code == "0":
                 logger.info("请求新的代理IP")
                 flag = REQUEST_SUCCESS
-            elif res['code'] in [429, 10038, 10055]:
+            elif this_code in ["429", "10038", "10055"]:
                 logger.info("提取频率过高，sleep 10s")
                 flag = REQUEST_TOO_QUICK
                 sleep(10)
-            elif res["code"] == 440:
+            elif this_code == "440":
                 logger.info("已达上限!!")
+                sleep(2)
                 raise ReachMaxException()
 
         ip_port_list = res['data']['proxy_list']
